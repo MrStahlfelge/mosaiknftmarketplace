@@ -24,7 +24,7 @@ dependencies {
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 
 	// Mosaik
-	val mosaikVersion = "753afcd5b7" // 2.0.0pre
+	val mosaikVersion = "3697f0cdcc" // 2.0.0pre
 	implementation("com.github.MrStahlfelge.mosaik:common-model:$mosaikVersion")
 	implementation("com.github.MrStahlfelge.mosaik:common-model-ktx:$mosaikVersion")
 	implementation("com.github.MrStahlfelge.mosaik:serialization-jackson:$mosaikVersion")

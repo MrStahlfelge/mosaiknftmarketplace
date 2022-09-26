@@ -20,3 +20,5 @@ class MosaikappApplication {
 fun main(args: Array<String>) {
 	runApplication<MosaikappApplication>(*args)
 }
+
+const val mosaikAppVersion = 1
