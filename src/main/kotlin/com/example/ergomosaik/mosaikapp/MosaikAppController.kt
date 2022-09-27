@@ -74,6 +74,7 @@ class MosaikAppController(
                         onEndIconClicked = searchForRequest.id
                         imeActionType = TextField.ImeActionType.SEARCH
                         onImeAction = searchForRequest.id
+                        minValue = 1
                     }
 
                     layout(HAlignment.END) {
@@ -184,6 +185,7 @@ class MosaikAppController(
             label("All collections", LabelStyle.HEADLINE2)
             grid(elementSize = Grid.ElementSize.MEDIUM) {
                 // TODO show only the top 12 with picture, all others only as label
+                // TODO and a link to all
                 skyHarborService.getCollections().forEach { collection ->
                     card(Padding.HALF_DEFAULT) {
                         onClickAction =
