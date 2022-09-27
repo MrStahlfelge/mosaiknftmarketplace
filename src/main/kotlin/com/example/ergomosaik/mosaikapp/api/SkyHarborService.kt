@@ -9,8 +9,13 @@ class SkyHarborService {
     private var mainPageNftList: List<NftSale> = emptyList()
     private var minPageSalesLastUpdatedMs: Long = 0
 
-    fun getSales(salesPerPage: Int, page: Int = 0, search: String = ""): List<NftSale> {
-        val isMainPage = page == 0 && search.isEmpty()
+    fun getSales(
+        salesPerPage: Int,
+        page: Int = 0,
+        search: String = "",
+        collection: String = "",
+    ): List<NftSale> {
+        val isMainPage = page == 0 && search.isEmpty() && collection.isEmpty()
 
         return if (isMainPage && System.currentTimeMillis() - minPageSalesLastUpdatedMs < 5 * 60 * 1000L)
             mainPageNftList.take(salesPerPage)
@@ -19,9 +24,12 @@ class SkyHarborService {
             val retList = try {
                 RestTemplate().getForEntity(
                     "https://skyharbor-server.net/api/sales?status=active&orderCol=list_time&order=desc&limit=${if (isMainPage) 25 else salesPerPage}&offset=$offset" +
-                            if (search.isNotBlank())
+                            (if (search.isNotBlank())
                                 "&searchFor=" + URLEncoder.encode(search, Charsets.UTF_8)
-                            else "",
+                            else "") +
+                            (if (collection.isNotEmpty())
+                                "&collection=" + URLEncoder.encode(collection, Charsets.UTF_8)
+                            else ""),
                     Array<NftSale>::class.java
                 ).body?.toList()
             } catch (t: Throwable) {
@@ -60,4 +68,7 @@ class SkyHarborService {
 
         return collectionList
     }
+
+    fun getCollection(sysname: String): NftCollection? =
+        getCollections().find { it.sys_name == sysname }
 }
