@@ -46,6 +46,18 @@ class SkyHarborService {
         }
     }
 
+    fun getSale(salesId: Int): NftSale? {
+        val retList = try {
+            RestTemplate().getForEntity(
+                "https://skyharbor-server.net/api/sales?saleId=$salesId",
+                Array<NftSale>::class.java
+            ).body?.toList()
+        } catch (t: Throwable) {
+            null
+        } ?: emptyList()
+        return retList.firstOrNull()
+    }
+
     private val collectionList = HashMap<String, NftCollection>()
     private var topCollections: List<String> = emptyList()
     private var collectionUpdatedMs: Long = 0
@@ -55,7 +67,7 @@ class SkyHarborService {
     }
 
     private fun updateCollections(): Map<String, NftCollection> {
-        if (System.currentTimeMillis() - collectionUpdatedMs > 6 * 60 * 60L * 1000) {
+        if (System.currentTimeMillis() - collectionUpdatedMs > 6 * 60 * 60L * 1000 || collectionList.isEmpty()) {
             val newCollectionList = try {
                 RestTemplate().getForEntity(
                     "https://skyharbor-server.net/api/collections",
@@ -86,7 +98,7 @@ class SkyHarborService {
         return collectionList
     }
 
-    fun getTopCollections(): List<NftCollection?>  {
+    fun getTopCollections(): List<NftCollection?> {
         val map = updateCollections()
         return topCollections.map { map[it] }
     }
