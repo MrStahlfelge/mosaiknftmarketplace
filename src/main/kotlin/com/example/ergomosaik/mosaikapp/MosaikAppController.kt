@@ -214,7 +214,7 @@ class MosaikAppController(
 
     private fun showCollectionView(request: HttpServletRequest) = mosaikView {
         column(Padding.HALF_DEFAULT, spacing = Padding.DEFAULT) {
-            label("Top collections", LabelStyle.HEADLINE2)
+            label("Top collections", LabelStyle.HEADLINE2, textColor = ForegroundColor.PRIMARY)
             grid(elementSize = Grid.ElementSize.LARGE) {
                 skyHarborService.getTopCollections().forEach { collection ->
                     collection?.let {
@@ -233,7 +233,7 @@ class MosaikAppController(
                     }
                 }
             }
-            label("All collections", LabelStyle.HEADLINE2)
+            label("All collections", LabelStyle.HEADLINE2, textColor = ForegroundColor.PRIMARY)
             grid(elementSize = Grid.ElementSize.MEDIUM) {
                 skyHarborService.getCollections().forEach { collection ->
                     box(Padding.DEFAULT) {
