@@ -46,10 +46,15 @@ class SkyHarborService {
         }
     }
 
-    private var collectionList: List<NftCollection> = emptyList()
+    private val collectionList = HashMap<String, NftCollection>()
+    private var topCollections: List<String> = emptyList()
     private var collectionUpdatedMs: Long = 0
 
     fun getCollections(): List<NftCollection> {
+        return updateCollections().values.sortedBy { it.name.lowercase() }
+    }
+
+    private fun updateCollections(): Map<String, NftCollection> {
         if (System.currentTimeMillis() - collectionUpdatedMs > 6 * 60 * 60L * 1000) {
             val newCollectionList = try {
                 RestTemplate().getForEntity(
@@ -61,14 +66,31 @@ class SkyHarborService {
             } ?: emptyList()
 
             if (newCollectionList.isNotEmpty()) {
-                collectionList = newCollectionList
+                collectionList.clear()
+                newCollectionList.forEach { collectionList[it.sys_name] = it }
                 collectionUpdatedMs = System.currentTimeMillis()
+
+                // top collections
+                val topCollections = try {
+                    RestTemplate().getForEntity(
+                        "https://skyharbor-server.net/api/metrics/topVolumes?limit=12",
+                        Array<NftCollectionVolume>::class.java
+                    ).body?.toList()
+                } catch (t: Throwable) {
+                    null
+                } ?: emptyList()
+                this.topCollections = topCollections.map { it.collection }
             }
         }
 
         return collectionList
     }
 
+    fun getTopCollections(): List<NftCollection?>  {
+        val map = updateCollections()
+        return topCollections.map { map[it] }
+    }
+
     fun getCollection(sysname: String): NftCollection? =
-        getCollections().find { it.sys_name == sysname }
+        updateCollections()[sysname]
 }

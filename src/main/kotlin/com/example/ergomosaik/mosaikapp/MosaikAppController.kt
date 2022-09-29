@@ -35,13 +35,18 @@ class MosaikAppController(
         request: HttpServletRequest,
     ): MosaikApp {
         return mosaikApp(
-            "NFT Marketplace",
+            "NFT Marketplace" +
+                    (if (search.isNotEmpty()) " Search" else "") +
+                    (if (collection.isNotEmpty()) " Collection ${
+                        skyHarborService.getCollection(collection)?.name ?: "-"
+                    }" else "") +
+                    (if (page > 0) " Page ${page + 1}" else ""),
             mosaikAppVersion,
             "Buy NFTs and NFT collections",
         ) {
             val context = MosaikSerializer.fromContextHeadersMap(headers)
             val salesPerPage =
-                if (context.walletAppPlatform == MosaikContext.Platform.PHONE) 12 else 24
+                if (context.walletAppPlatform == MosaikContext.Platform.PHONE) 6 else 12
             val nftSales = skyHarborService.getSales(salesPerPage, page, search, collection)
 
             column(Padding.NONE, childAlignment = HAlignment.JUSTIFY) {
@@ -116,6 +121,16 @@ class MosaikAppController(
                                             textColor = ForegroundColor.PRIMARY
                                         ) {
                                             maxLines = 1
+                                            onClickAction = navigateToApp(
+                                                newAppUrl(
+                                                    request,
+                                                    0,
+                                                    "",
+                                                    nftSale.collection_sys_name
+                                                ),
+                                                id = "openCollection${nftSale.collection_sys_name}"
+                                            ).id
+
                                         }
                                         label(nftSale.nft_name, LabelStyle.BODY1BOLD) {
                                             maxLines = 1
@@ -182,22 +197,36 @@ class MosaikAppController(
 
     private fun showCollectionView(request: HttpServletRequest) = mosaikView {
         column(Padding.HALF_DEFAULT, spacing = Padding.DEFAULT) {
+            label("Top collections", LabelStyle.HEADLINE2)
+            grid(elementSize = Grid.ElementSize.LARGE) {
+                skyHarborService.getTopCollections().forEach { collection ->
+                    collection?.let {
+                        card(Padding.HALF_DEFAULT) {
+                            onClickAction =
+                                navigateToApp(
+                                    newAppUrl(request, 0, "", collection.sys_name),
+                                    id = "openCollection${collection.sys_name}"
+                                ).id
+
+                            row(Padding.HALF_DEFAULT, spacing = Padding.HALF_DEFAULT) {
+                                image(collection.card_image, Image.Size.MEDIUM)
+
+                                layout(weight = 1) {
+                                    label(collection.name, LabelStyle.HEADLINE2)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             label("All collections", LabelStyle.HEADLINE2)
             grid(elementSize = Grid.ElementSize.MEDIUM) {
-                // TODO show only the top 12 with picture, all others only as label
-                // TODO and a link to all
                 skyHarborService.getCollections().forEach { collection ->
-                    card(Padding.HALF_DEFAULT) {
+                    box(Padding.DEFAULT) {
                         onClickAction =
                             navigateToApp(newAppUrl(request, 0, "", collection.sys_name)).id
 
-                        row(Padding.HALF_DEFAULT, spacing = Padding.HALF_DEFAULT) {
-                            image(collection.card_image, Image.Size.MEDIUM)
-
-                            layout(weight = 1) {
-                                label(collection.name, LabelStyle.HEADLINE2)
-                            }
-                        }
+                        label(collection.name, LabelStyle.HEADLINE2, HAlignment.CENTER)
                     }
                 }
             }
