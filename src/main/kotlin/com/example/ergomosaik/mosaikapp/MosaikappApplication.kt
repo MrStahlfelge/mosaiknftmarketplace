@@ -22,3 +22,6 @@ fun main(args: Array<String>) {
 }
 
 const val mosaikAppVersion = 1
+
+fun formatErgAmount(rawAmount: Long): String =
+	rawAmount.toBigDecimal().movePointLeft(9).toPlainString().trimEnd('0').trimEnd('.')

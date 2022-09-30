@@ -177,13 +177,15 @@ class MosaikAppController(
         isDetailPage: Boolean,
         mosaikContext: MosaikContext,
     ) {
-        val toSalesDetailsId =
-            mosaikApp.navigateToSaleAction(request, nftSale.id).id
+        val proceedActionId =
+            if (isDetailPage)
+                mosaikApp.invokeErgoPay("ergopay://" + getHostUrl(request).substringAfter("://") + "/purchase/${nftSale.id}/#P2PK_ADDRESS#").id
+            else
+                mosaikApp.navigateToSaleAction(request, nftSale.id).id
         if (!isDetailPage)
-            onClickAction = toSalesDetailsId
-        column(
-            Padding.HALF_DEFAULT, spacing = Padding.HALF_DEFAULT
-        ) {
+            onClickAction = proceedActionId
+
+        column(Padding.DEFAULT, spacing = Padding.HALF_DEFAULT) {
             nftSale.ipfs_art_hash?.let {
                 image(
                     "https://cloudflare-ipfs.com/ipfs/$it",
@@ -224,7 +226,7 @@ class MosaikAppController(
                 trimTrailingZero = true
             )
             button(if (isDetailPage) "Purchase" else "Details") {
-                onClickAction(toSalesDetailsId)
+                onClickAction(proceedActionId)
             }
         }
     }
