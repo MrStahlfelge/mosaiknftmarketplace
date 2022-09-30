@@ -15,4 +15,6 @@ data class NftSale(
     var nerg_sale_value: Long,
     var token_id: String,
     var token_amount: Long,
+    var sales_address: String,
+    var box_id: String,
 )

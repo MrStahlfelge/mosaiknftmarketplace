@@ -8,6 +8,7 @@ import org.ergoplatform.mosaik.model.*
 import org.ergoplatform.mosaik.model.ui.ForegroundColor
 import org.ergoplatform.mosaik.model.ui.IconType
 import org.ergoplatform.mosaik.model.ui.Image
+import org.ergoplatform.mosaik.model.ui.ViewGroup
 import org.ergoplatform.mosaik.model.ui.input.TextField
 import org.ergoplatform.mosaik.model.ui.layout.*
 import org.ergoplatform.mosaik.model.ui.text.LabelStyle
@@ -30,6 +31,8 @@ class MosaikAppController(
         @RequestHeader headers: Map<String, String>,
         request: HttpServletRequest,
     ): MosaikApp {
+        val context = MosaikSerializer.fromContextHeadersMap(headers)
+
         return mosaikApp(
             "NFT Marketplace" +
                     (if (search.isNotEmpty()) " Search" else "") +
@@ -40,8 +43,9 @@ class MosaikAppController(
             mosaikAppVersion,
             (if (collection.isNotEmpty()) skyHarborService.getCollection(collection)?.description
             else null) ?: "Buy NFTs and NFT collections",
+            targetCanvasDimension = if (context.mosaikVersion < 2)
+                MosaikManifest.CanvasDimension.COMPACT_WIDTH else null
         ) {
-            val context = MosaikSerializer.fromContextHeadersMap(headers)
             val salesPerPage =
                 if (context.walletAppPlatform == MosaikContext.Platform.PHONE) 6 else 12
             val nftSales = skyHarborService.getSales(salesPerPage, page, search, collection)
@@ -86,7 +90,7 @@ class MosaikAppController(
                             HAlignment.END,
                             ForegroundColor.PRIMARY
                         ) {
-                            onClickAction = changeView(showCollectionView(request)).id
+                            onClickAction = changeView(showCollectionView(request, context)).id
                         }
                     }
                 }
@@ -95,13 +99,25 @@ class MosaikAppController(
                     id = mainGridContainerId
 
                     val salesToShow =
-                        nftSales.filter { it.currency == "erg" && it.nft_type == "image" }
+                        nftSales.filter {
+                            it.currency == "erg" && it.nft_type == "image"
+                                    && it.sales_address == SkyHarborService.ergSalesAddress
+                        }
 
-                    grid(elementSize = Grid.ElementSize.MEDIUM) {
-
+                    gridWithFallBackToColumn(
+                        context,
+                        Grid.ElementSize.MEDIUM,
+                        columnChildAlignment = HAlignment.JUSTIFY
+                    ) {
                         salesToShow.forEach { nftSale ->
                             card(Padding.HALF_DEFAULT) {
-                                saleCardContent(this@mosaikApp, request, nftSale, false)
+                                saleCardContent(
+                                    this@mosaikApp,
+                                    request,
+                                    nftSale,
+                                    false,
+                                    context
+                                )
                             }
                         }
                     }
@@ -159,6 +175,7 @@ class MosaikAppController(
         request: HttpServletRequest,
         nftSale: NftSale,
         isDetailPage: Boolean,
+        mosaikContext: MosaikContext,
     ) {
         val toSalesDetailsId =
             mosaikApp.navigateToSaleAction(request, nftSale.id).id
@@ -170,7 +187,7 @@ class MosaikAppController(
             nftSale.ipfs_art_hash?.let {
                 image(
                     "https://cloudflare-ipfs.com/ipfs/$it",
-                    if (isDetailPage) Image.Size.XXL else Image.Size.LARGE
+                    if (isDetailPage && mosaikContext.mosaikVersion >= 2) Image.Size.XXL else Image.Size.LARGE
                 )
             }
             label(
@@ -212,10 +229,35 @@ class MosaikAppController(
         }
     }
 
-    private fun showCollectionView(request: HttpServletRequest) = mosaikView {
+    /**
+     * this helper method uses a grid in case we are on Mosaik 2 or higher.
+     * Mosaik 1 does not provide the grid, so we fall back to using a column here. That's the
+     * same on phones.
+     */
+    private fun ViewGroup.gridWithFallBackToColumn(
+        mosaikContext: MosaikContext,
+        gridElementSize: Grid.ElementSize,
+        padding: Padding? = null,
+        columnChildAlignment: HAlignment? = null,
+        init: ViewGroup.() -> Unit
+    ) {
+        if (mosaikContext.mosaikVersion >= 2)
+            grid(padding, elementSize = gridElementSize) {
+                init()
+            }
+        else
+            column(padding, childAlignment = columnChildAlignment) {
+                init()
+            }
+    }
+
+    private fun showCollectionView(
+        request: HttpServletRequest,
+        context: MosaikContext
+    ) = mosaikView {
         column(Padding.HALF_DEFAULT, spacing = Padding.DEFAULT) {
             label("Top collections", LabelStyle.HEADLINE2, textColor = ForegroundColor.PRIMARY)
-            grid(elementSize = Grid.ElementSize.LARGE) {
+            gridWithFallBackToColumn(context, Grid.ElementSize.LARGE) {
                 skyHarborService.getTopCollections().forEach { collection ->
                     collection?.let {
                         card(Padding.HALF_DEFAULT) {
@@ -234,7 +276,7 @@ class MosaikAppController(
                 }
             }
             label("All collections", LabelStyle.HEADLINE2, textColor = ForegroundColor.PRIMARY)
-            grid(elementSize = Grid.ElementSize.MEDIUM) {
+            gridWithFallBackToColumn(context, gridElementSize = Grid.ElementSize.MEDIUM) {
                 skyHarborService.getCollections().forEach { collection ->
                     box(Padding.DEFAULT) {
                         onClickAction =
@@ -270,6 +312,7 @@ class MosaikAppController(
         request: HttpServletRequest
     ): MosaikApp {
         val sale = skyHarborService.getSale(saleId)
+        val context = MosaikSerializer.fromContextHeadersMap(headers)
         return mosaikApp(
             "NFT Sale " + (sale?.nft_name ?: ""),
             mosaikAppVersion,
@@ -280,7 +323,7 @@ class MosaikAppController(
                 column(spacing = Padding.DEFAULT) {
                     sale?.let {
                         card(Padding.NONE) {
-                            saleCardContent(this@mosaikApp, request, sale, true)
+                            saleCardContent(this@mosaikApp, request, sale, true, context)
                         }
                     }
 
