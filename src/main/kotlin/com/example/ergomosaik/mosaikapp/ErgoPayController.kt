@@ -15,7 +15,7 @@ class ErgoPayController(
     private val skyHarborService: SkyHarborService,
 ) {
 
-    @GetMapping("/purchase/{saleId}/{buyer}")
+    @GetMapping("$epPurchaseUrl/{saleId}/{buyer}")
     fun purchaseSale(
         @PathVariable saleId: Int,
         @PathVariable buyer: String,

@@ -47,7 +47,7 @@ class MosaikAppController(
                 MosaikManifest.CanvasDimension.COMPACT_WIDTH else null
         ) {
             val salesPerPage =
-                if (context.walletAppPlatform == MosaikContext.Platform.PHONE) 6 else 12
+                if (context.walletAppPlatform == MosaikContext.Platform.PHONE || context.mosaikVersion < 2) 6 else 12
             val nftSales = skyHarborService.getSales(salesPerPage, page, search, collection)
 
             column(Padding.NONE, childAlignment = HAlignment.JUSTIFY) {
@@ -179,7 +179,7 @@ class MosaikAppController(
     ) {
         val proceedActionId =
             if (isDetailPage)
-                mosaikApp.invokeErgoPay("ergopay://" + getHostUrl(request).substringAfter("://") + "/purchase/${nftSale.id}/#P2PK_ADDRESS#").id
+                mosaikApp.invokeErgoPay("ergopay://" + getHostUrl(request).substringAfter("://") + "$epPurchaseUrl/${nftSale.id}/#P2PK_ADDRESS#").id
             else
                 mosaikApp.navigateToSaleAction(request, nftSale.id).id
         if (!isDetailPage)
@@ -303,14 +303,14 @@ class MosaikAppController(
         request: HttpServletRequest,
         sale: Int
     ) = navigateToApp(
-        getHostUrl(request) + saleUrl + "/$sale",
+        getHostUrl(request) + saleUrl + "?saleId=$sale",
         id = "openSale${sale}"
     )
 
-    @GetMapping(saleUrl + "/{sale}")
+    @GetMapping(saleUrl)
     fun saleDetails(
         @RequestHeader headers: Map<String, String>,
-        @PathVariable(name = "sale") saleId: Int,
+        @RequestParam saleId: Int,
         request: HttpServletRequest
     ): MosaikApp {
         val sale = skyHarborService.getSale(saleId)
@@ -318,7 +318,7 @@ class MosaikAppController(
         return mosaikApp(
             "NFT Sale " + (sale?.nft_name ?: ""),
             mosaikAppVersion,
-            null,
+            sale?.let { "Purchase ${sale.nft_name} now" },
             targetCanvasDimension = MosaikManifest.CanvasDimension.MEDIUM_WIDTH,
         ) {
             box(Padding.DEFAULT) {
@@ -394,6 +394,7 @@ class MosaikAppController(
 
 const val marketPlaceUrl = "/"
 const val saleUrl = "/sale"
+const val epPurchaseUrl = "/purchase"
 const val searchMarketPlacePostUrl = "/search"
 const val searchFieldId = "search"
 const val mainGridContainerId = "main"
